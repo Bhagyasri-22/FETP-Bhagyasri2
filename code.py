@@ -1,36 +1,26 @@
-from flask import Flask, render_template, redirect, url_for, flash
-from flask_googlelogin import GoogleLogin, GoogleLoggedInAccount
+from flask import Flask, redirect, url_for, render_template_string
+from flask_dance.contrib.google import make_google_blueprint, google
 
 app = Flask(__name__)
+app.secret_key = 'Superskrit'
 
-app.config['SECRET_KEY'] = '24'
-app.config['GOOGLELOGIN_CLIENT_ID'] = 'Hello Bhagyasri'
-app.config['GOOGLELOGIN_CLIENT_SECRET'] = 'You signed in with the email address kavitibhagyasrirao@gmail.com'
-
-googlelogin = GoogleLogin(app)
+blueprint = make_google_blueprint(
+    client_id= '1015024038462-vnhejth1pomsfbjvf4arqe63io6e77mq.apps.googleusercontent.com',
+    client_secret= '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',
+    scope=['profile', 'email'],
+    redirect_to='index',
+)
+app.register_blueprint(blueprint, url_prefix='/login')
 
 @app.route('/')
-def home():
-    return render_template('home.html')
-
-@app.route('/login')
-def login():
-    return googlelogin.login_redirect(request.args.get('next'))
-
-@app.route('/login/callback')
-def login_callback():
-    try:
-        google_user = googlelogin.current_user()
-    except Exception as e:
-        flash('Authentication failed.')
-        return redirect(url_for('home'))
-
-    if google_user.email == 'YOUR_AUTHORIZED_EMAIL':
-        flash('Successfully signed in with Google.')
-        return redirect(url_for('home'))
-    else:
-        flash('Failed to sign in with Google.')
-        return redirect(url_for('home'))
+def index():
+    if not google.authorized:
+        return redirect(url_for('google.login'))
+    resp = google.get('/oauth2/v2/userinfo')
+    assert resp.ok, resp.text
+    return resp.text
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
+    
+    
